@@ -15547,7 +15547,7 @@ BundleBuildingButtons = {
             },
 
             StoppedBuildings = {},
-            Downgrade = true,
+            Downgrade = false,
         },
 
         Description = {
@@ -29539,13 +29539,13 @@ BundleStockbreeding = {
             MinAmountNearby = 2,
             AreaSizeNearby = 3000,
 
-            AllowBreedCattle = true,
+            AllowBreedCattle = false,
             CattlePastures = {},
             CattleBaby = true,
             CattleFeedingTimer = 45,
             CattleMoneyCost = 300,
 
-            AllowBreedSheeps = true,
+            AllowBreedSheeps = false,
             SheepPastures = {},
             SheepBaby = true,
             SheepFeedingTimer = 45,
@@ -29555,8 +29555,8 @@ BundleStockbreeding = {
     },
     Local = {
         Data = {
-            AllowBreedCattle = true,
-            AllowBreedSheeps = true,
+            AllowBreedCattle = false,
+            AllowBreedSheeps = false,
         },
 
         Description = {
@@ -31728,7 +31728,10 @@ b_Reward_ToggleCommunityFeatures = {
     },
     Parameter = {
         { ParameterType.Custom, en = "BuildingDowngrade", de = "Gebäuderückbau" },
-        { ParameterType.Custom, en = "CattleBreeding", de = "Viehzucht" },
+		{ ParameterType.Custom, en = "SingleStop", de = "Einzelstilllegung" },
+        { ParameterType.Custom, en = "LifestockBreeding", de = "Viehzucht" },
+		{ ParameterType.Custom, en = "HE-Autosave", de = "HE-Autospeicherung" },
+		{ ParameterType.Custom, en = "GameClock", de = "Spielzeituhr" }
     },
 }
 
@@ -31737,24 +31740,22 @@ function b_Reward_ToggleCommunityFeatures:GetRewardTable()
 end
 
 function b_Reward_ToggleCommunityFeatures:GetCustomData(_Index)
-    local Data = {};
-    if _Index == 0 then
-        table.insert(Data, "true");
-        table.insert(Data, "false");
-    elseif _Index == 1 then
-        table.insert(Data, "true");
-        table.insert(Data, "false");
-    else
-        assert(false);
-    end
-    return Data;
+    return {"true", "false"}
 end
 
 function b_Reward_ToggleCommunityFeatures:AddParameter(_Index, _Parameter)
     if (_Index == 0) then
         self.UseDowngrade = _Parameter;
-    elseif (_Index == 1) then
+	elseif (_Index == 1) then
+		self.UseSingleStop = _Parameter;
+    elseif (_Index == 2) then
         self.UseBreeding = _Parameter;
+	elseif (_Index == 3) then
+		self.UseHEQuickSave = _Parameter;
+	elseif (_Index == 4) then
+		self.UseGameClock = _Parameter;
+	else
+		assert(false, "Reward_ToggleCommunityFeatures: Missing _Index")
     end
 end
 
@@ -31762,6 +31763,20 @@ function b_Reward_ToggleCommunityFeatures:CustomFunction(_Quest)
 	API.UseDowngrade(API.ToBoolean(self.UseDowngrade))
 	API.UseBreedSheeps(API.ToBoolean(self.UseBreeding))
 	API.UseBreedCattle(API.ToBoolean(self.UseBreeding))
+	API.UseSingleStop(API.ToBoolean(self.UseSingleStop))
+	API.DisableAutomaticQuickSave(not API.ToBoolean(self.UseHEQuickSave))
+	
+	Logic.ExecuteInLuaLocalState([[
+		local ShowClockWidget = 1
+		if AddOnQuestDebug.Local.Data.GameClock ~= nil then
+			AddOnQuestDebug.Local.Data.GameClock = (]]..tostring(self.UseGameClock)..[[ == true)
+		
+			if not AddOnQuestDebug.Local.Data.GameClock then
+				ShowClockWidget = 0
+			end
+			XGUIEng.ShowWidget("/InGame/Root/Normal/AlignTopLeft/GameClock", ShowClockWidget)
+		end
+	]]);
 end
 
 Core:RegisterBehavior(b_Reward_ToggleCommunityFeatures);
@@ -36054,8 +36069,10 @@ function AddOnQuestDebug.Local:ActivateDevelopingCheats()
     KeyBindings_EnableDebugMode(1);
     KeyBindings_EnableDebugMode(2);
     KeyBindings_EnableDebugMode(3);
-    self.Data.GameClock = true;
-    XGUIEng.ShowWidget("/InGame/Root/Normal/AlignTopLeft/GameClock",1);
+	if self.Data.GameClock ~= false then 
+		self.Data.GameClock = true;
+		XGUIEng.ShowWidget("/InGame/Root/Normal/AlignTopLeft/GameClock",1);
+	end
 end
 
 ---
