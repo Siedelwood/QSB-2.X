@@ -4,6 +4,16 @@
 -- ########################################################################## --
 -- -------------------------------------------------------------------------- --
 
+--[[
+	AUTOREN:
+	-> Old McDonald: Ursprüngliche QSB 3.9, Übernahme vieler Behaviors
+	-> totalwarANGEL: Grundlegende QSB-S 2.x
+	-> Eisenmonoxid: Leichte Änderungen und Bugfixes
+	-> Gitti1962: Überarbeitung einiger sprachlicher Fehler
+	
+	Die neueste Version der QSB-S 2.x findet sich auf https://github.com/Siedelwood/QSB2.14.8
+--]]
+
 ---
 -- Hier werden wichtige Basisfunktionen bereitgestellt. Diese Funktionen sind
 -- auch in der Minimalkonfiguration der QSB vorhanden und essentiell für alle
@@ -14,7 +24,7 @@
 
 API = API or {};
 QSB = QSB or {};
-QSB.Version = "Version 2.14.9 20/02/2023"; --Erweitert von Eisenmonoxid
+QSB.Version = "Version 2.14.9 21/02/2023";
 QSB.HumanPlayerID = 1;
 QSB.Language = "de";
 
@@ -9913,8 +9923,8 @@ end
 
 b_Reward_InteractiveObjectDeactivate = API.InstanceTable(b_Reprisal_InteractiveObjectDeactivate);
 b_Reward_InteractiveObjectDeactivate.Name             = "Reward_InteractiveObjectDeactivate";
-b_Reward_InteractiveObjectDeactivate.Description.de   = "Reward: Deactivates an interactive object";
-b_Reward_InteractiveObjectDeactivate.Description.en   = "Lohn: Deaktiviert ein interaktives Objekt";
+b_Reward_InteractiveObjectDeactivate.Description.en   = "Reward: Deactivates an interactive object";
+b_Reward_InteractiveObjectDeactivate.Description.de   = "Lohn: Deaktiviert ein interaktives Objekt";
 b_Reward_InteractiveObjectDeactivate.GetReprisalTable = nil;
 
 b_Reward_InteractiveObjectDeactivate.GetRewardTable = function(self, _Quest)
@@ -10178,8 +10188,8 @@ end
 
 b_Reward_Diplomacy = API.InstanceTable(b_Reprisal_Diplomacy);
 b_Reward_Diplomacy.Name             = "Reward_Diplomacy";
-b_Reward_Diplomacy.Description.de   = "Reward: Sets Diplomacy state of two Players to a stated value.";
-b_Reward_Diplomacy.Description.en   = "Lohn: Setzt den Diplomatiestatus zweier Spieler auf den angegebenen Wert.";
+b_Reward_Diplomacy.Description.en   = "Reward: Sets Diplomacy state of two Players to a stated value.";
+b_Reward_Diplomacy.Description.de   = "Lohn: Setzt den Diplomatiestatus zweier Spieler auf den angegebenen Wert.";
 b_Reward_Diplomacy.GetReprisalTable = nil;
 
 b_Reward_Diplomacy.GetRewardTable = function(self, _Quest)
@@ -12205,8 +12215,8 @@ end
 b_Reward_Units = {
     Name = "Reward_Units",
     Description = {
-        en = "Reward: Units",
-        de = "Lohn: Einheiten",
+        en = "Reward: Gives the contractor a lot of units",
+        de = "Lohn: Gibt dem Auftragnehmer eine Menge an Einheiten",
     },
     Parameter = {
         { ParameterType.Entity, en = "Type name", de = "Typbezeichnung" },
@@ -13625,8 +13635,8 @@ end
 b_Trigger_AlwaysActive = {
     Name = "Trigger_AlwaysActive",
     Description = {
-        en = "Trigger: the map has been started.",
-        de = "Auslöser: Start der Karte.",
+        en = "Trigger: Starts the quest immediately.",
+        de = "Auslöser: Startet die Quest sofort.",
     },
 }
 
@@ -27683,7 +27693,7 @@ end
 
 ---
 -- Setzt die Einnahmen für alle Stadtgebäude eines Spielers. Stadtgebäude
--- können nur Einnahmen zwischen 0 und 100 Talern haben.
+-- können ohne S6Hook nur Einnahmen zwischen 0 und 100 Talern haben.
 --
 -- <b>Alias:</b> SetPlayerEarnings
 --
@@ -30794,8 +30804,8 @@ end
 b_Goal_CityReputation = {
     Name = "Goal_CityReputation",
     Description = {
-        en = "Goal: Der Ruf der Stadt des Empfängers muss mindestens so hoch sein, wie angegeben.",
-        de = "Ziel: The reputation of the quest receivers city must at least reach the desired hight.",
+        de = "Goal: Der Ruf der Stadt des Empfängers muss mindestens so hoch sein, wie angegeben.",
+        en = "Ziel: The reputation of the quest receivers city must at least reach the desired hight.",
     },
     Parameter = {
         { ParameterType.Number, en = "City reputation", de = "Ruf der Stadt" },
@@ -30912,8 +30922,8 @@ end
 b_Goal_CollectValuables = {
     Name = "Goal_CollectValuables",
     Description = {
-        en = "Goal: ",
-        de = "Ziel: ",
+        de = "Goal: Der Spieler muss eine Anzahl an Gegenständen finden, die bei den angegebenen Positionen platziert werden",
+        en = "Ziel: The player has to find a number of objects that are placed at the indicated positions",
     },
     Parameter = {
         { ParameterType.Default, en = "Search points",          de = "Suchpunkte" },
@@ -43377,8 +43387,8 @@ end
 b_Goal_RandomRequest = {
     Name = "Goal_RandomRequest",
     Description = {
-        en = "Goal: Der Spieler erhält einen zufällig generierten Auftrag, der erfüllt werden muss. Über die Parameter wird bestimmt, welche Typen von Aufträgen möglich sind. Tipp: Für versteckten Quest nutzen!",
-        de = "Ziel: The player receives an randomly generated quest that he needs to complete. Define which types of quest possibly appear by setting the parameters. Tip: Use this quest as invisible quest!",
+        de = "Goal: Der Spieler erhält einen zufällig generierten Auftrag, der erfüllt werden muss. Über die Parameter wird bestimmt, welche Typen von Aufträgen möglich sind. Tipp: Für versteckten Quest nutzen!",
+        en = "Ziel: The player receives an randomly generated quest that he needs to complete. Define which types of quest possibly appear by setting the parameters. Tip: Use this quest as invisible quest!",
     },
     Parameter = {
         { ParameterType.Custom,  en = "Deliver goods",                  de = "Waren liefern" },
