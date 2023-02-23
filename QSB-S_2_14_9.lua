@@ -5,12 +5,7 @@
 -- -------------------------------------------------------------------------- --
 
 --[[
-	AUTOREN:
-	-> Old McDonald: Ursprüngliche QSB 3.9, Übernahme vieler Behaviors
-	-> totalwarANGEL: Grundlegende QSB-S 2.x
-	-> Eisenmonoxid: Leichte Änderungen und Bugfixes
-	-> Gitti1962: Überarbeitung einiger sprachlicher Fehler
-	
+	Diese QSB basiert in Teilen auf Inhalten der klassischen QSB 3.9
 	Die neueste Version der QSB-S 2.x findet sich auf https://github.com/Siedelwood/QSB2.14.8
 --]]
 
@@ -24,7 +19,7 @@
 
 API = API or {};
 QSB = QSB or {};
-QSB.Version = "Version 2.14.9 21/02/2023";
+QSB.Version = "Version 2.14.9 23/02/2023";
 QSB.HumanPlayerID = 1;
 QSB.Language = "de";
 
@@ -66,6 +61,7 @@ LEVEL_INFO = QSB.Logging.Levels.Info;
 LEVEL_WARNING = QSB.Logging.Levels.Warning;
 LEVEL_ERROR = QSB.Logging.Levels.Error;
 LEVEL_OFF = QSB.Logging.Levels.Off;
+
 
 -- API Stuff --
 
@@ -2585,6 +2581,18 @@ function Core:OverrideInterfaceUpdateForCinematicMode()
             end
         end
     end
+	
+	-- Fix B_Cathedral_Big 
+	GUI_BuildingInfo_BuildingNameUpdate_ORIG = GUI_BuildingInfo.BuildingNameUpdate;
+	GUI_BuildingInfo.BuildingNameUpdate = function()
+		GUI_BuildingInfo_BuildingNameUpdate_ORIG()	
+		
+		local CurrentWidgetID = XGUIEng.GetCurrentWidgetID()
+		if XGUIEng.GetText(CurrentWidgetID) == "{center}B_Cathedral_Big" then
+			XGUIEng.SetText(CurrentWidgetID, "{center}Kathedrale")
+		end
+		
+	end
 end
 
 ---
@@ -2950,6 +2958,38 @@ function Core:SetupGlobal_HackQuestSystem()
                 _quest.Triggers[i].Data[1]:Interrupt(_quest, i);
             end
         end
+    end
+	
+	-- Bugfix for Delivery Cart Distance
+	function QuestTemplate:IsMerchantArrived(objective)
+        if objective.Data[3] ~= nil then
+            if objective.Data[3] == 1 then
+                if objective.Data[5].ID ~= nil then
+                    objective.Data[3] = objective.Data[5].ID
+                    DeleteQuestMerchantWithID(objective.Data[3])
+                    if MapCallback_DeliverCartSpawned then
+                        MapCallback_DeliverCartSpawned( self, objective.Data[3], objective.Data[1] )
+                    end
+                end
+            elseif Logic.IsEntityDestroyed(objective.Data[3]) then
+                DeleteQuestMerchantWithID(objective.Data[3])
+                objective.Data[3] = nil
+                objective.Data[5].ID = nil
+            else
+                local Target = objective.Data[6] and objective.Data[6] or self.SendingPlayer
+                local valid = Logic.GetDistanceBetweenEntities(objective.Data[3], Logic.GetStoreHouse(Target)) < 1300
+                if Logic.GetMarketplace(Target) ~= 0 then
+                    valid = valid or Logic.GetDistanceBetweenEntities(objective.Data[3], Logic.GetMarketplace(Target)) < 1300
+                end
+                
+                if Logic.GetHeadquarters(Target) ~= 0 then
+                    valid = valid or Logic.GetDistanceBetweenEntities(objective.Data[3], Logic.GetHeadquarters(Target)) < 1300
+                end
+                
+                return valid
+            end
+        end
+        return false
     end
 end
 
