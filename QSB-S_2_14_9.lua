@@ -2589,7 +2589,8 @@ function Core:OverrideInterfaceUpdateForCinematicMode()
 		
 		local CurrentWidgetID = XGUIEng.GetCurrentWidgetID()
 		if XGUIEng.GetText(CurrentWidgetID) == "{center}B_Cathedral_Big" then
-			XGUIEng.SetText(CurrentWidgetID, "{center}Kathedrale")
+			local Text = {de = "Kathedrale", en = "Cathedral"}
+			XGUIEng.SetText(CurrentWidgetID, "{center}" .. API.Localize(Text))
 		end
 		
 	end
