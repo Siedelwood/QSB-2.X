@@ -1,3 +1,4 @@
+HistoryEditionFIX_Language = "de"
 -- -------------------------------------------------------------------------- --
 -- ########################################################################## --
 -- #  Symfonia Core                                                         # --
@@ -19,7 +20,7 @@
 
 API = API or {};
 QSB = QSB or {};
-QSB.Version = "Version 2.14.9 23/02/2023";
+QSB.Version = "Version 2.14.9 08/03/2023";
 QSB.HumanPlayerID = 1;
 QSB.Language = "de";
 
@@ -3075,8 +3076,6 @@ function Core:RegisterBehavior(_Behavior)
     end
 
     if not _G["b_" .. _Behavior.Name] then
-        --self:LogToFile("AddQuestBehavior: can not find ".. _Behavior.Name .."!", LEVEL_ERROR);
-        --self:LogToScreen("AddQuestBehavior: can not find ".. _Behavior.Name .."!", LEVEL_ERROR);
         Logic.ExecuteInLuaLocalState("GUI.AddStaticNote('" ..tostring(_Behavior.Name).. "')");
     else
         if not _G["b_" .. _Behavior.Name].new then
@@ -3102,6 +3101,11 @@ function Core:RegisterBehavior(_Behavior)
                 return;
             end
         end
+		
+		if HistoryEditionFIX_Language == "de" then
+			_Behavior.Description.en = _Behavior.Description.de	
+		end
+	
         table.insert(g_QuestBehaviorTypes, _Behavior);
     end
 end
@@ -9997,8 +10001,8 @@ end
 
 b_Reward_InteractiveObjectActivate = API.InstanceTable(b_Reprisal_InteractiveObjectActivate);
 b_Reward_InteractiveObjectActivate.Name             = "Reward_InteractiveObjectActivate";
-b_Reward_InteractiveObjectActivate.Description.de   = "Reward: Activates an interactive object";
-b_Reward_InteractiveObjectActivate.Description.en   = "Lohn: Aktiviert ein interaktives Objekt";
+b_Reward_InteractiveObjectActivate.Description.de   = "Lohn: Aktiviert ein interaktives Objekt";
+b_Reward_InteractiveObjectActivate.Description.en   = "Reward: Activates an interactive object";
 b_Reward_InteractiveObjectActivate.GetReprisalTable = nil;
 
 b_Reward_InteractiveObjectActivate.GetRewardTable = function(self, _Quest)
@@ -30845,8 +30849,8 @@ end
 b_Goal_CityReputation = {
     Name = "Goal_CityReputation",
     Description = {
-        de = "Goal: Der Ruf der Stadt des Empfängers muss mindestens so hoch sein, wie angegeben.",
-        en = "Ziel: The reputation of the quest receivers city must at least reach the desired hight.",
+        en = "Goal: The reputation of the quest receivers city must at least reach the desired height.",
+		de = "Ziel: Der Ruf der Stadt des Empfängers muss mindestens so hoch sein wie angegeben.", 
     },
     Parameter = {
         { ParameterType.Number, en = "City reputation", de = "Ruf der Stadt" },
@@ -30963,8 +30967,8 @@ end
 b_Goal_CollectValuables = {
     Name = "Goal_CollectValuables",
     Description = {
-        de = "Goal: Der Spieler muss eine Anzahl an Gegenständen finden, die bei den angegebenen Positionen platziert werden",
-        en = "Ziel: The player has to find a number of objects that are placed at the indicated positions",
+		de = "Ziel: Der Spieler muss eine Anzahl an Gegenständen finden, die bei den angegebenen Positionen platziert werden",
+        en = "Goal: The player has to find a number of objects that are placed at the indicated positions",
     },
     Parameter = {
         { ParameterType.Default, en = "Search points",          de = "Suchpunkte" },
@@ -43428,8 +43432,8 @@ end
 b_Goal_RandomRequest = {
     Name = "Goal_RandomRequest",
     Description = {
-        de = "Goal: Der Spieler erhält einen zufällig generierten Auftrag, der erfüllt werden muss. Über die Parameter wird bestimmt, welche Typen von Aufträgen möglich sind. Tipp: Für versteckten Quest nutzen!",
-        en = "Ziel: The player receives an randomly generated quest that he needs to complete. Define which types of quest possibly appear by setting the parameters. Tip: Use this quest as invisible quest!",
+		en = "Goal: The player receives an randomly generated quest that he needs to complete. Define which types of quest possibly appear by setting the parameters. Tip: Use this quest as invisible quest!",
+        de = "Ziel: Der Spieler erhält einen zufällig generierten Auftrag, der erfüllt werden muss. Über die Parameter wird bestimmt, welche Typen von Aufträgen möglich sind. Tipp: Für versteckten Quest nutzen!",
     },
     Parameter = {
         { ParameterType.Custom,  en = "Deliver goods",                  de = "Waren liefern" },
