@@ -4460,11 +4460,16 @@ function BundleBriefingSystem.Local:ThroneRoomCameraControl()
             Camera.ThroneRoom_SetFOV(42.0);
 
             -- Bar Style
-            BundleBriefingSystem.Local:SetBarStyle(self.Data.CurrentBriefing.BarOpacity, self.Data.CurrentBriefing.BigBars);
-            if self.Data.CurrentPage.BigBars ~= nil then
-                BundleBriefingSystem.Local:SetBarStyle(self.Data.CurrentBriefing.BarOpacity, self.Data.CurrentPage.BigBars);
-            end
-
+			local CurrentOpacity = self.Data.CurrentBriefing.BarOpacity
+			if self.Data.CurrentPage.BarOpacity ~= nil then
+				CurrentOpacity = self.Data.CurrentPage.BarOpacity
+			end
+			local CurrentBigBars = self.Data.CurrentBriefing.BigBars
+			if self.Data.CurrentPage.BigBars ~= nil then
+				CurrentBigBars = self.Data.CurrentPage.BigBars
+			end
+			BundleBriefingSystem.Local:SetBarStyle(CurrentOpacity, CurrentBigBars);
+		
             -- Splashscreen
             self:ScrollSplashscreen();
 
