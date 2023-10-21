@@ -20,7 +20,7 @@ HistoryEditionFIX_Language = "de"
 
 API = API or {};
 QSB = QSB or {};
-QSB.Version = "Version 2.14.9 08/03/2023";
+QSB.Version = "Version 2.14.9.1 21/10/2023";
 QSB.HumanPlayerID = 1;
 QSB.Language = "de";
 
@@ -21194,7 +21194,19 @@ function BundleEntitySelection.Local:OverwriteMultiselectIcon()
         local CurrentMotherName = XGUIEng.GetWidgetNameByID(CurrentMotherID);
         local Index = tonumber(CurrentMotherName);
         local EntityID = g_MultiSelection.EntityList[Index];
-        local EntityType = Logic.GetEntityType(EntityID);
+		local EntityType
+    
+		if Logic.IsLeader(EntityID) == 1 then
+			EntityType = Logic.LeaderGetSoldiersType(EntityID)
+		else
+			EntityType = Logic.GetEntityType(EntityID)
+		end
+    
+		local EntityTypeName = Logic.GetEntityTypeName(EntityType)
+		
+		if EntityTypeName == nil then
+			return;
+		end
 
         if EntityType ~= Entities.U_SiegeEngineCart and EntityType ~= Entities.U_Trebuchet then
             GUI_MultiSelection.IconMouseOver_Orig_BundleEntitySelection();
