@@ -20,7 +20,7 @@ HistoryEditionFIX_Language = "de"
 
 API = API or {};
 QSB = QSB or {};
-QSB.Version = "Version 2.14.9.3 25/10/2023";
+QSB.Version = "Version 2.14.9.4 27/10/2023";
 QSB.HumanPlayerID = 1;
 QSB.Language = "de";
 
@@ -71,12 +71,12 @@ LEVEL_OFF = QSB.Logging.Levels.Off;
 function API.ToggleDisplayScriptErrors(_active)
     if GUI then
 		g_DisplayScriptErrors = API.ToBoolean(_active)
-		GUI.SendScriptCommand([[g_DisplayScriptErrors = ]]..API.ToBoolean(_active)..[[]])
+		GUI.SendScriptCommand([[g_DisplayScriptErrors = ]]..tostring(API.ToBoolean(_active))..[[]])
 		return;
     end
 
 	g_DisplayScriptErrors = API.ToBoolean(_active)
-	Logic.ExecuteInLuaLocalState([[g_DisplayScriptErrors = ]]..API.ToBoolean(_active)..[[]])
+	Logic.ExecuteInLuaLocalState([[g_DisplayScriptErrors = ]]..tostring(API.ToBoolean(_active))..[[]])
 end
 
 ---
@@ -1175,14 +1175,14 @@ QSB.HistoryEdition = false;
 QSB.ScriptingValues = QSB.ScriptingValues or {
     Game = "Vanilla",
     Vanilla = {
-        Destination = {X = 19, Y= 20},
+        Destination = {X = 19, Y = 20},
         Health      = -41,
         Player      = -71,
         Size        = -45,
         Visible     = -50,
     },
     HistoryEdition = {
-        Destination = {X = 17, Y= 18},
+        Destination = {X = 17, Y = 18},
         Health      = -38,
         Player      = -68,
         Size        = -42,
@@ -1213,20 +1213,16 @@ function Core:SetupLocal_HistoryEditionAutoSave()
 end
 
 ---
--- Identifiziert anhand der um +3 Verschobenen PlayerID bei den Scripting
--- Values die infamous History Edition. Ob es sich um die History Edition
--- hält, wird in der Variable QSB.HistoryEdition gespeichert.
+-- Identifiziert die History Edition. Ob es sich um die History Edition
+-- handelt, wird in der Variable QSB.HistoryEdition gespeichert.
 --
--- TODO: Es sollten mehr Kritieren als nur die PlayerID geprüft werden!
 --
 -- @within Internal
 -- @local
 --
 function Core:IdentifyHistoryEdition()
-    local EntityID = Logic.CreateEntity(Entities.U_NPC_Amma_NE, 100, 100, 0, 8);
-    MakeInvulnerable(EntityID);
-    if Logic.GetEntityScriptingValue(EntityID, -68) == 8 then
-        Logic.ExecuteInLuaLocalState([[
+	if Network.IsNATReady ~= nil then -- HE (Steam/Ubisoft)
+	    Logic.ExecuteInLuaLocalState([[
             QSB = QSB or {}
             QSB.HistoryEdition = true
             QSB.ScriptingValues = QSB.ScriptingValues or {}
@@ -1235,8 +1231,7 @@ function Core:IdentifyHistoryEdition()
         QSB = QSB or {};
         QSB.HistoryEdition = true;
         QSB.ScriptingValues.Game = "HistoryEdition";
-    end
-    DestroyEntity(EntityID);
+	end
 end
 
 ---
@@ -44193,6 +44188,80 @@ end
 
 Core:RegisterAddOn("AddOnQuestNotes");
 
+function API.ToggleHuntableLifestock(_active)
+	if not GUI then
+		Logic.ExecuteInLuaLocalState([[API.ToggleHuntableLifestock(]]..tostring(_active)..[[)]])
+		return;
+	end
+	
+	if _active == false then
+		API.RemoveCustomBuildingButton(1)
+		API.HunterButtonWasActivated = nil
+		return;
+	end
+
+	if API.HunterButtonWasActivated == nil then
+		API.AddCustomBuildingButton(1,
+		-- Aktion
+		function(_WidgetID, _BuildingID)
+			local HuntCowsAllowed = Logic.GetOptionalHuntableState(_BuildingID, 2)
+			local HuntSheepAllowed = Logic.GetOptionalHuntableState(_BuildingID, 1)
+			if HuntCowsAllowed == true then
+				GUI.SetOptionalHuntableState(_BuildingID, 2, false)
+				GUI.SetOptionalHuntableState(_BuildingID, 1, true)
+			elseif HuntSheepAllowed == true then
+				GUI.SetOptionalHuntableState(_BuildingID, 2, false)
+				GUI.SetOptionalHuntableState(_BuildingID, 1, false)
+			else
+				GUI.SetOptionalHuntableState(_BuildingID, 2, true)
+				GUI.SetOptionalHuntableState(_BuildingID, 1, false)
+			end
+			Sound.FXPlay2DSound("ui\\menu_click")
+		end,
+		-- Tooltip
+		function(_WidgetID, _BuildingID)
+			local HuntCowsAllowed = Logic.GetOptionalHuntableState(_BuildingID, 2)
+			local HuntSheepAllowed = Logic.GetOptionalHuntableState(_BuildingID, 1)
+			local ToolTipText = {de = "", en = ""}
+			if HuntCowsAllowed == true then
+				ToolTipText = {de = "Kühe", en = "Cows"}
+			elseif HuntSheepAllowed == true then
+				ToolTipText = {de = "Schafe", en = "Sheep"}
+			else
+				ToolTipText = {de = "Keine Weidetiere", en = "No farm animals"}
+			end
+			
+			local Title = {de = "Jagd auf Weidetiere", en = "Hunt Lifestock"}
+			local Text = {de = "Gebt Schafe und Kühe zur Jagd frei!{cr}{@color:0,128,0,255}Momentan werden "..API.Localize(ToolTipText).." gejagt!", 
+						  en = "Let the hunter hunt lifestock!{cr}{@color:0,128,0,255}Currently "..API.Localize(ToolTipText).." are being hunted!"}
+			
+			BundleBuildingButtons.Local:TextNormal(
+				API.ConvertPlaceholders(API.Localize(Title)),
+				API.ConvertPlaceholders(API.Localize(Text))
+			);
+		end,
+		-- Update
+		function(_WidgetID, _BuildingID)
+			if Logic.GetEntityType(_BuildingID) == Entities.B_HuntersHut then
+				XGUIEng.ShowWidget(_WidgetID, 1)
+				local HuntCowsAllowed = Logic.GetOptionalHuntableState(_BuildingID, 2)
+				local HuntSheepAllowed = Logic.GetOptionalHuntableState(_BuildingID, 1)
+				if HuntCowsAllowed == true then
+					SetIcon(_WidgetID, {4, 1});
+				elseif HuntSheepAllowed == true then
+					SetIcon(_WidgetID, {4, 2});
+				else
+					SetIcon(_WidgetID, {3, 16});			
+				end
+			else
+				XGUIEng.ShowWidget(_WidgetID, 0)	
+			end
+		end);
+		
+		API.HunterButtonWasActivated = true
+	end
+end
+
 -- -------------------------------------------------------------------------- --
 -- ########################################################################## --
 -- #  Symfonia Selfload                                                     # --
@@ -44249,3 +44318,4 @@ if not MapEditor and not GUI then
         end
     ]]);
 end
+-- #EOF
