@@ -20,7 +20,7 @@ HistoryEditionFIX_Language = "de"
 
 API = API or {};
 QSB = QSB or {};
-QSB.Version = "Version 2.14.9.5 01/11/2023";
+QSB.Version = "Version 2.14.9.6 26/11/2023";
 QSB.HumanPlayerID = 1;
 QSB.Language = "de";
 
@@ -44324,7 +44324,8 @@ if not MapEditor and not GUI then
     gvMission.MusicRootPath = "music/";
     gvMission.PlaylistRootPath = "config/sound/";
 
-    if Mission_LoadFiles then
+    API.Install();
+	if Mission_LoadFiles then
         local Files = Mission_LoadFiles();
         if Files then
             for i= 1, #Files, 1 do
@@ -44332,7 +44333,6 @@ if not MapEditor and not GUI then
             end
         end
     end
-    API.Install();
     if BundleKnightTitleRequirements then
         InitKnightTitleTables();
     end
@@ -44345,7 +44345,8 @@ if not MapEditor and not GUI then
         gvMission.PlaylistRootPath = "config/sound/";
 
         Script.Load(gvMission.ContentPath.. "questsystembehavior.lua");
-        if Mission_LoadFiles then
+        API.Install();
+		if Mission_LoadFiles then
             local Files = Mission_LoadFiles();
             if Files then
                 for i= 1, #Files, 1 do
@@ -44353,7 +44354,6 @@ if not MapEditor and not GUI then
                 end
             end
         end
-        API.Install();
         if BundleKnightTitleRequirements then
             InitKnightTitleTables();
         end
