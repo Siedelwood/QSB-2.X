@@ -20,7 +20,7 @@ HistoryEditionFIX_Language = "de"
 
 API = API or {};
 QSB = QSB or {};
-QSB.Version = "Version 2.14.9.7 03/12/2023";
+QSB.Version = "Version 2.14.9.7 03/12/2023 - 20:08";
 QSB.HumanPlayerID = 1;
 QSB.Language = "de";
 
@@ -20764,13 +20764,6 @@ function API.IsEntityInAtLeastOneCategory(_Entity, ...)
 end
 IsInCategory = API.IsEntityInAtLeastOneCategory;
 
-function API.ActivateTradepostHandling(_tradepostID, _active, _playerID, _monthsToTrade)
-	BundleEntityProperties.Global.Data.TradeDefinitions[_tradepostID] = BundleEntityProperties.Global.Data.TradeDefinitions[_tradepostID] or {}
-	BundleEntityProperties.Global.Data.TradeDefinitions[_tradepostID].PlayerID = _playerID
-	BundleEntityProperties.Global.Data.TradeDefinitions[_tradepostID].MonthsToTrade = _monthsToTrade
-	BundleEntityProperties.Global.Data.TradeDefinitions[_tradepostID].Active = _active
-end
-
 -- -------------------------------------------------------------------------- --
 -- Internal                                                                   --
 -- -------------------------------------------------------------------------- --
@@ -20798,7 +20791,6 @@ function BundleEntityProperties.Global:Install()
 			local State = GetDiplomacyState(QSB.HumanPlayerID, PlayerID)
 		
 			if Logic.IsEntityAlive(Key) 
-				and Value.Active == true
 				and math.fmod(_CurrentMonth, Value.MonthsToTrade) == 0 
 				and State >= DiplomacyStates.TradeContact
 				and TradeIndex ~= -1
@@ -20815,10 +20807,10 @@ function BundleEntityProperties.Global:Install()
 				
 				local GoodAmount = Logic.GetAmountOnOutStockByGoodType(Logic.GetStoreHouse(QSB.HumanPlayerID), TradeDefinition[1])
 
-				if GoodAmount >= NeededAmount then		
+				if GoodAmount >= NeededAmount then
 					Logic.RemoveGoodFromStock(Logic.GetStoreHouse(QSB.HumanPlayerID), TradeDefinition[1], NeededAmount)
 					API.SendCart(Logic.GetStoreHouse(QSB.HumanPlayerID), PlayerID, TradeDefinition[1], NeededAmount)
-					API.SendCart(Logic.GetStoreHouse(PlayerID), 1, TradeDefinition[3], TradeDefinition[4])
+					API.SendCart(Logic.GetStoreHouse(PlayerID), QSB.HumanPlayerID, TradeDefinition[3], TradeDefinition[4])
 		
 					Logic.ExecuteInLuaLocalState([[GameCallback_Feedback_TradeExecuted(]]..QSB.HumanPlayerID..[[, ]]..Key..[[)]])
 				else
@@ -20838,10 +20830,12 @@ function BundleEntityProperties.Global:UpdateTradepostDefinitionTable(_TradePost
 		return;
 	end
 	
+	local TradepostPlayerID = Logic.GetTerritoryPlayerID(GetTerritoryUnderEntity(_TradePostID))
 	local Definition = Logic.TradePost_GetTradeDefinition(_TradePostID, _ActiveSlot)
 	
+	self.Data.TradeDefinitions[_tradepostID].PlayerID = TradepostPlayerID
 	self.Data.TradeDefinitions[_TradePostID].Trades = self.Data.TradeDefinitions[_TradePostID].Trades or {}		
-	if Logic.GetGoodCategoryForGoodType(Definition[3]) ~= GoodCategories.GC_Resource then	
+	if Logic.GetGoodCategoryForGoodType(Definition[3]) ~= GoodCategories.GC_Resource then
 		self.Data.TradeDefinitions[_TradePostID].Trades[_ActiveSlot] = Definition
 	else
 		self.Data.TradeDefinitions[_TradePostID].Trades[_ActiveSlot] = nil
