@@ -20,7 +20,7 @@ HistoryEditionFIX_Language = "de"
 
 API = API or {};
 QSB = QSB or {};
-QSB.Version = "Version 2.14.9.6 26/11/2023";
+QSB.Version = "Version 2.14.9.7 03/12/2023";
 QSB.HumanPlayerID = 1;
 QSB.Language = "de";
 
@@ -2589,6 +2589,25 @@ function Core:OverrideInterfaceUpdateForCinematicMode()
                 XGUIEng.ShowWidget("/InGame/Root/Normal/Selected_Tradepost", 0);
             end
         end
+		
+		TradepostTradeClicked_Orig_CoreInterface = GUI_Tradepost.TradeClicked;
+		GUI_Tradepost.TradeClicked = function(_ButtonIndex)
+			local EntityID = GUI.GetSelectedEntity()
+			if g_Tradepost.Trades[_ButtonIndex] == nil then
+				return;
+			end
+
+			local TradeSlot = g_Tradepost.Trades[_ButtonIndex].TradeSlot
+			local ActiveSlot = Logic.TradePost_GetActiveTradeSlot(EntityID)
+
+			if TradeSlot == ActiveSlot then
+				GUI.SendScriptCommand([[BundleEntityProperties.Global:UpdateTradepostDefinitionTable(]]..EntityID..[[, -1)]])
+				GUI.SetActiveTradePostSlot(EntityID, -1)
+			else
+				GUI.SendScriptCommand([[BundleEntityProperties.Global:UpdateTradepostDefinitionTable(]]..EntityID..[[, ]]..TradeSlot..[[)]])
+				GUI.SetActiveTradePostSlot(EntityID, TradeSlot)
+			end
+		end
     end
 	
 	-- Fix B_Cathedral_Big 
@@ -2951,7 +2970,7 @@ function Core:InitalizeBundles()
                 end
             end
             self.Data.InitalizedBundles[v] = true;
-            collectgarbage();
+            collectgarbage("collect"); -- Completely useless ...
         end
         QSB.InitializationFinished = true;
     end
@@ -3225,6 +3244,23 @@ function Core:RegisterBundle(_Bundle)
     local text = string.format("Error while initialize bundle '%s': does not exist!", tostring(_Bundle));
     assert(_G[_Bundle] ~= nil, text);
     table.insert(self.Data.BundleInitializerList, _Bundle);
+	
+	if (QSB.InitializationFinished == true) and (Core:IsBundleRegistered(_Bundle) == false) then
+        local Bundle = _G[_Bundle];
+        if not GUI then
+            if Bundle.Global ~= nil and Bundle.Global.Install ~= nil then
+                Bundle.Global:Install();
+                Bundle.Local = nil;
+            end
+        else
+            if Bundle.Local ~= nil and Bundle.Local.Install ~= nil then
+                Bundle.Local:Install();
+                Bundle.Global = nil;
+            end
+        end
+        self.Data.InitalizedBundles[_Bundle] = true;
+        collectgarbage("collect");
+    end
 end
 
 ---
@@ -3238,9 +3274,7 @@ end
 -- @local
 --
 function Core:RegisterAddOn(_AddOn)
-    local text = string.format("Error while initialize addon '%s': does not exist!", tostring(_AddOn));
-    assert(_G[_AddOn] ~= nil, text);
-    table.insert(self.Data.BundleInitializerList, _AddOn);
+	Core:RegisterBundle(_AddOn)
 end
 
 ---
@@ -20730,13 +20764,22 @@ function API.IsEntityInAtLeastOneCategory(_Entity, ...)
 end
 IsInCategory = API.IsEntityInAtLeastOneCategory;
 
+function API.ActivateTradepostHandling(_tradepostID, _active, _playerID, _monthsToTrade)
+	BundleEntityProperties.Global.Data.TradeDefinitions[_tradepostID] = BundleEntityProperties.Global.Data.TradeDefinitions[_tradepostID] or {}
+	BundleEntityProperties.Global.Data.TradeDefinitions[_tradepostID].PlayerID = _playerID
+	BundleEntityProperties.Global.Data.TradeDefinitions[_tradepostID].MonthsToTrade = _monthsToTrade
+	BundleEntityProperties.Global.Data.TradeDefinitions[_tradepostID].Active = _active
+end
+
 -- -------------------------------------------------------------------------- --
 -- Internal                                                                   --
 -- -------------------------------------------------------------------------- --
 
 BundleEntityProperties = {
     Global = {
-        Data = {};
+        Data = {
+			TradeDefinitions = {}
+		};
     },
     Shared = {
         Data = {};
@@ -20747,6 +20790,62 @@ BundleEntityProperties = {
 -- Installiert das Bundle.
 --
 function BundleEntityProperties.Global:Install()
+	Core:AppendFunction("GameCallback_EndOfMonth", function()
+       	-- Tradepost Handling
+		for Key, Value in pairs(self.Data.TradeDefinitions) do -- Key: TradepostID
+			local PlayerID = Value.PlayerID
+			local TradeIndex = Value.TradeIndex
+			local State = GetDiplomacyState(QSB.HumanPlayerID, PlayerID)
+		
+			if Logic.IsEntityAlive(Key) 
+				and Value.Active == true
+				and math.fmod(_CurrentMonth, Value.MonthsToTrade) == 0 
+				and State >= DiplomacyStates.TradeContact
+				and TradeIndex ~= -1
+				and Value.Trades[TradeIndex] ~= nil
+				and Logic.CanFitAnotherMerchantOnMarketplace(Logic.GetMarketplace(QSB.HumanPlayerID)) == true
+			then
+				local TradeDefinition = Value.Trades[TradeIndex]
+				local NeededAmount = TradeDefinition[2]
+				local Modifier = Logic.Extra1_GetSarayaTradeModifier()
+				local KnightType = Logic.GetEntityType(Logic.GetKnightID(QSB.HumanPlayerID))
+				if KnightType == Entities.U_KnightSaraya then
+					NeededAmount = NeededAmount * Modifier
+				end
+				
+				local GoodAmount = Logic.GetAmountOnOutStockByGoodType(Logic.GetStoreHouse(QSB.HumanPlayerID), TradeDefinition[1])
+
+				if GoodAmount >= NeededAmount then		
+					Logic.RemoveGoodFromStock(Logic.GetStoreHouse(QSB.HumanPlayerID), TradeDefinition[1], NeededAmount)
+					API.SendCart(Logic.GetStoreHouse(QSB.HumanPlayerID), PlayerID, TradeDefinition[1], NeededAmount)
+					API.SendCart(Logic.GetStoreHouse(PlayerID), 1, TradeDefinition[3], TradeDefinition[4])
+		
+					Logic.ExecuteInLuaLocalState([[GameCallback_Feedback_TradeExecuted(]]..QSB.HumanPlayerID..[[, ]]..Key..[[)]])
+				else
+					Logic.ExecuteInLuaLocalState([[GameCallback_Feedback_TradeNotExecuted(]]..QSB.HumanPlayerID..[[, ]]..Key..[[, 
+						TradePost.Error_LackingTradeGood, ]]..QSB.HumanPlayerID..[[, ]]..TradeDefinition[1]..[[)]])
+				end
+			end
+		end
+    end);
+end
+
+function BundleEntityProperties.Global:UpdateTradepostDefinitionTable(_TradePostID, _ActiveSlot)
+	self.Data.TradeDefinitions[_TradePostID] = self.Data.TradeDefinitions[_TradePostID] or {}
+	self.Data.TradeDefinitions[_TradePostID].TradeIndex = _ActiveSlot
+	
+	if _ActiveSlot == -1 then
+		return;
+	end
+	
+	local Definition = Logic.TradePost_GetTradeDefinition(_TradePostID, _ActiveSlot)
+	
+	self.Data.TradeDefinitions[_TradePostID].Trades = self.Data.TradeDefinitions[_TradePostID].Trades or {}		
+	if Logic.GetGoodCategoryForGoodType(Definition[3]) ~= GoodCategories.GC_Resource then	
+		self.Data.TradeDefinitions[_TradePostID].Trades[_ActiveSlot] = Definition
+	else
+		self.Data.TradeDefinitions[_TradePostID].Trades[_ActiveSlot] = nil
+	end
 end
 
 ---
@@ -37288,7 +37387,7 @@ end
 
 ---
 -- Überschreibt die globalen Spielfunktionen, die mit dem Burglager in
--- Konfilckt stehen.
+-- Konflikt stehen.
 --
 -- @within Internal
 -- @local
