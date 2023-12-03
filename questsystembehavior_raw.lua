@@ -20791,7 +20791,7 @@ function BundleEntityProperties.Global:Install()
 			local State = GetDiplomacyState(QSB.HumanPlayerID, PlayerID)
 		
 			if Logic.IsEntityAlive(Key) 
-				and math.fmod(_CurrentMonth, Value.MonthsToTrade) == 0 
+				--and math.fmod(_CurrentMonth, Value.MonthsToTrade) == 0 
 				and State >= DiplomacyStates.TradeContact
 				and TradeIndex ~= -1
 				and Value.Trades[TradeIndex] ~= nil
