@@ -20,7 +20,7 @@ HistoryEditionFIX_Language = "de"
 
 API = API or {};
 QSB = QSB or {};
-QSB.Version = "Version 2.14.9.7 03/12/2023 - 20:08";
+QSB.Version = "Version 2.14.9.7 03/12/2023 - 22:20";
 QSB.HumanPlayerID = 1;
 QSB.Language = "de";
 
@@ -20786,17 +20786,14 @@ function BundleEntityProperties.Global:Install()
 	Core:AppendFunction("GameCallback_EndOfMonth", function()
        	-- Tradepost Handling
 		for Key, Value in pairs(self.Data.TradeDefinitions) do -- Key: TradepostID
-			local PlayerID = Value.PlayerID
 			local TradeIndex = Value.TradeIndex
-			local State = GetDiplomacyState(QSB.HumanPlayerID, PlayerID)
 		
 			if Logic.IsEntityAlive(Key) 
-				--and math.fmod(_CurrentMonth, Value.MonthsToTrade) == 0 
-				and State >= DiplomacyStates.TradeContact
 				and TradeIndex ~= -1
 				and Value.Trades[TradeIndex] ~= nil
 				and Logic.CanFitAnotherMerchantOnMarketplace(Logic.GetMarketplace(QSB.HumanPlayerID)) == true
 			then
+				local PlayerID = Logic.GetTerritoryPlayerID(GetTerritoryUnderEntity(Key))
 				local TradeDefinition = Value.Trades[TradeIndex]
 				local NeededAmount = TradeDefinition[2]
 				local Modifier = Logic.Extra1_GetSarayaTradeModifier()
@@ -20830,10 +20827,8 @@ function BundleEntityProperties.Global:UpdateTradepostDefinitionTable(_TradePost
 		return;
 	end
 	
-	local TradepostPlayerID = Logic.GetTerritoryPlayerID(GetTerritoryUnderEntity(_TradePostID))
 	local Definition = Logic.TradePost_GetTradeDefinition(_TradePostID, _ActiveSlot)
 	
-	self.Data.TradeDefinitions[_tradepostID].PlayerID = TradepostPlayerID
 	self.Data.TradeDefinitions[_TradePostID].Trades = self.Data.TradeDefinitions[_TradePostID].Trades or {}		
 	if Logic.GetGoodCategoryForGoodType(Definition[3]) ~= GoodCategories.GC_Resource then
 		self.Data.TradeDefinitions[_TradePostID].Trades[_ActiveSlot] = Definition
