@@ -20,7 +20,7 @@ HistoryEditionFIX_Language = "de"
 
 API = API or {};
 QSB = QSB or {};
-QSB.Version = "Version 2.14.9.7 03/12/2023 - 22:20";
+QSB.Version = "Version 2.14.9.8 20/12/2023 - 20:03";
 QSB.HumanPlayerID = 1;
 QSB.Language = "de";
 
@@ -2589,25 +2589,6 @@ function Core:OverrideInterfaceUpdateForCinematicMode()
                 XGUIEng.ShowWidget("/InGame/Root/Normal/Selected_Tradepost", 0);
             end
         end
-		
-		TradepostTradeClicked_Orig_CoreInterface = GUI_Tradepost.TradeClicked;
-		GUI_Tradepost.TradeClicked = function(_ButtonIndex)
-			local EntityID = GUI.GetSelectedEntity()
-			if g_Tradepost.Trades[_ButtonIndex] == nil then
-				return;
-			end
-
-			local TradeSlot = g_Tradepost.Trades[_ButtonIndex].TradeSlot
-			local ActiveSlot = Logic.TradePost_GetActiveTradeSlot(EntityID)
-
-			if TradeSlot == ActiveSlot then
-				GUI.SendScriptCommand([[BundleEntityProperties.Global:UpdateTradepostDefinitionTable(]]..EntityID..[[, -1)]])
-				GUI.SetActiveTradePostSlot(EntityID, -1)
-			else
-				GUI.SendScriptCommand([[BundleEntityProperties.Global:UpdateTradepostDefinitionTable(]]..EntityID..[[, ]]..TradeSlot..[[)]])
-				GUI.SetActiveTradePostSlot(EntityID, TradeSlot)
-			end
-		end
     end
 	
 	-- Fix B_Cathedral_Big 
@@ -20783,58 +20764,6 @@ BundleEntityProperties = {
 -- Installiert das Bundle.
 --
 function BundleEntityProperties.Global:Install()
-	Core:AppendFunction("GameCallback_EndOfMonth", function()
-       	-- Tradepost Handling
-		for Key, Value in pairs(self.Data.TradeDefinitions) do -- Key: TradepostID
-			local TradeIndex = Value.TradeIndex
-		
-			if Logic.IsEntityAlive(Key) 
-				and TradeIndex ~= -1
-				and Value.Trades[TradeIndex] ~= nil
-				and Logic.CanFitAnotherMerchantOnMarketplace(Logic.GetMarketplace(QSB.HumanPlayerID)) == true
-			then
-				local PlayerID = Logic.GetTerritoryPlayerID(GetTerritoryUnderEntity(Key))
-				local TradeDefinition = Value.Trades[TradeIndex]
-				local NeededAmount = TradeDefinition[2]
-				local Modifier = Logic.Extra1_GetSarayaTradeModifier()
-				local KnightType = Logic.GetEntityType(Logic.GetKnightID(QSB.HumanPlayerID))
-				if KnightType == Entities.U_KnightSaraya then
-					NeededAmount = NeededAmount * Modifier
-				end
-				
-				local GoodAmount = Logic.GetAmountOnOutStockByGoodType(Logic.GetStoreHouse(QSB.HumanPlayerID), TradeDefinition[1])
-
-				if GoodAmount >= NeededAmount then
-					Logic.RemoveGoodFromStock(Logic.GetStoreHouse(QSB.HumanPlayerID), TradeDefinition[1], NeededAmount)
-					API.SendCart(Logic.GetStoreHouse(QSB.HumanPlayerID), PlayerID, TradeDefinition[1], NeededAmount)
-					API.SendCart(Logic.GetStoreHouse(PlayerID), QSB.HumanPlayerID, TradeDefinition[3], TradeDefinition[4])
-		
-					Logic.ExecuteInLuaLocalState([[GameCallback_Feedback_TradeExecuted(]]..QSB.HumanPlayerID..[[, ]]..Key..[[)]])
-				else
-					Logic.ExecuteInLuaLocalState([[GameCallback_Feedback_TradeNotExecuted(]]..QSB.HumanPlayerID..[[, ]]..Key..[[, 
-						TradePost.Error_LackingTradeGood, ]]..QSB.HumanPlayerID..[[, ]]..TradeDefinition[1]..[[)]])
-				end
-			end
-		end
-    end);
-end
-
-function BundleEntityProperties.Global:UpdateTradepostDefinitionTable(_TradePostID, _ActiveSlot)
-	self.Data.TradeDefinitions[_TradePostID] = self.Data.TradeDefinitions[_TradePostID] or {}
-	self.Data.TradeDefinitions[_TradePostID].TradeIndex = _ActiveSlot
-	
-	if _ActiveSlot == -1 then
-		return;
-	end
-	
-	local Definition = Logic.TradePost_GetTradeDefinition(_TradePostID, _ActiveSlot)
-	
-	self.Data.TradeDefinitions[_TradePostID].Trades = self.Data.TradeDefinitions[_TradePostID].Trades or {}		
-	if Logic.GetGoodCategoryForGoodType(Definition[3]) ~= GoodCategories.GC_Resource then
-		self.Data.TradeDefinitions[_TradePostID].Trades[_ActiveSlot] = Definition
-	else
-		self.Data.TradeDefinitions[_TradePostID].Trades[_ActiveSlot] = nil
-	end
 end
 
 ---
