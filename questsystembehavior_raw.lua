@@ -1,15 +1,8 @@
 HistoryEditionFIX_Language = "de"
--- -------------------------------------------------------------------------- --
--- ########################################################################## --
--- #  Symfonia Core                                                         # --
--- ########################################################################## --
--- -------------------------------------------------------------------------- --
-
 --[[
 	Diese QSB basiert in Teilen auf Inhalten der klassischen QSB 3.9
 	Die neueste Version der QSB-S 2.x findet sich auf https://github.com/Siedelwood/qsb-s
 --]]
-
 ---
 -- Hier werden wichtige Basisfunktionen bereitgestellt. Diese Funktionen sind
 -- auch in der Minimalkonfiguration der QSB vorhanden und essentiell für alle
@@ -20,7 +13,7 @@ HistoryEditionFIX_Language = "de"
 
 API = API or {};
 QSB = QSB or {};
-QSB.Version = "Version 2.14.9.8 20/12/2023 - 20:03";
+QSB.Version = "Version 2.14.9.9 29/01/2024";
 QSB.HumanPlayerID = 1;
 QSB.Language = "de";
 
@@ -46,8 +39,8 @@ end
 -- Logging ---------------------------------------------------------------------
 
 QSB.Logging = {
-    DisplayLoggingLevel = 4,
-    FileLoggingLevel = 2,
+    DisplayLoggingLevel = 5,
+    FileLoggingLevel = 5,
     Levels = {
         Debug = 1;
         Info = 2;
@@ -43583,11 +43576,14 @@ function AddOnRandomRequests.Local:SaveTerritoryPosition()
     local Territories = {Logic.GetTerritories()};
     for i= 1, #Territories, 1 do
         local x, y = GUI.ComputeTerritoryPosition(Territories[i]);
-        GUI.SendScriptCommand(string.format([[
-            AddOnRandomRequests.Global.Data.TerritoryPositions[%d] = {
-                X = %f, Y = %f
-            }
-        ]], Territories[i], x * 1.0, y * 1.0))
+		
+		if x ~= nil and y ~= nil then	
+			GUI.SendScriptCommand(string.format([[
+				AddOnRandomRequests.Global.Data.TerritoryPositions[%d] = {
+					X = %f, Y = %f
+				}
+			]], Territories[i], x * 1.0, y * 1.0))
+		end
     end
 end
 
