@@ -1,25 +1,21 @@
-HistoryEditionFIX_Language = "de"
+HistoryEditionFIX_Language = "de" -- Change this to en if you want behavior descriptions in english
 --[[
-	Diese QSB basiert in Teilen auf Inhalten der klassischen QSB 3.9
+	Diese QSB basiert in Teilen auf Inhalten der klassischen QSB 3.9.
 	Die neueste Version der QSB-S 2.x findet sich auf https://github.com/Siedelwood/qsb-s
+	Hilfe zur Verwendung ist erhältlich auf dem Siedelwood - Discord: https://siedelwood-3000.de/siedelwood-discord/
+	
+	Parts of this QSB are based on content from the original QSB 3.9.
+	The newest version of this QSB-S 2.x is available at https://github.com/Siedelwood/qsb-s
+	If you need help or have questions, feel free to join the Siedelwood - Discord: https://siedelwood-3000.de/siedelwood-discord/
 --]]
----
--- Hier werden wichtige Basisfunktionen bereitgestellt. Diese Funktionen sind
--- auch in der Minimalkonfiguration der QSB vorhanden und essentiell für alle
--- anderen Bundles.
---
--- @set sort=true
---
 
 API = API or {};
 QSB = QSB or {};
-QSB.Version = "Version 2.14.9.9 29/01/2024";
+QSB.Version = "Version 2.15.0.1 22/02/2024";
 QSB.HumanPlayerID = 1;
 QSB.Language = "de";
 
-Core = Core or {
-    Data = {}
-};
+Core = Core or {Data = {}};
 
 ParameterType = ParameterType or {};
 g_QuestBehaviorVersion = 1;
@@ -62,13 +58,12 @@ LEVEL_OFF = QSB.Logging.Levels.Off;
 -- mit dem Kommandozeilenparameter gestartet hat.
 
 function API.ToggleDisplayScriptErrors(_active)
+	g_DisplayScriptErrors = API.ToBoolean(_active)
+	
     if GUI then
-		g_DisplayScriptErrors = API.ToBoolean(_active)
 		GUI.SendScriptCommand([[g_DisplayScriptErrors = ]]..tostring(API.ToBoolean(_active))..[[]])
 		return;
     end
-
-	g_DisplayScriptErrors = API.ToBoolean(_active)
 	Logic.ExecuteInLuaLocalState([[g_DisplayScriptErrors = ]]..tostring(API.ToBoolean(_active))..[[]])
 end
 
@@ -1173,6 +1168,9 @@ QSB.ScriptingValues = QSB.ScriptingValues or {
         Player      = -71,
         Size        = -45,
         Visible     = -50,
+		-- Added by Eisenmonoxid
+		Model 		= -74,
+		Selectable  = -50,
     },
     HistoryEdition = {
         Destination = {X = 17, Y = 18},
@@ -1180,6 +1178,9 @@ QSB.ScriptingValues = QSB.ScriptingValues or {
         Player      = -68,
         Size        = -42,
         Visible     = -47,
+		-- Added by Eisenmonoxid
+		Model 		= -71,
+		Selectable  = -47,
     }
 }
 
@@ -1221,6 +1222,7 @@ function Core:IdentifyHistoryEdition()
             QSB.ScriptingValues = QSB.ScriptingValues or {}
             QSB.ScriptingValues.Game = 'HistoryEdition'
         ]]);
+		
         QSB = QSB or {};
         QSB.HistoryEdition = true;
         QSB.ScriptingValues.Game = "HistoryEdition";
@@ -2944,7 +2946,7 @@ function Core:InitalizeBundles()
                 end
             end
             self.Data.InitalizedBundles[v] = true;
-            collectgarbage("collect"); -- Completely useless ...
+            collectgarbage("collect");
         end
         QSB.InitializationFinished = true;
     end
@@ -15824,8 +15826,8 @@ BundleBuildingButtons = {
                     en = "Start/Stop Work",
                 },
                 Text = {
-                    de = "- Startet oder stoppe die Arbeit in diesem Betrieb",
-                    en = "- Continue or stop work for this building",
+                    de = "- Startet oder stoppt die Arbeit in diesem Betrieb",
+                    en = "- Resume or stop work in this building",
                 },
             },
         },
@@ -18203,9 +18205,12 @@ function QSB.SimpleTypewriter:Play()
             Core:InterfaceDeactivateBorderScroll(Position)
 			Core:InterfaceActivateBlackBackground(ColorR, ColorG, ColorB, ColorA)
 			
-			if ColorA >= 255 then
-				Camera.SwitchCameraBehaviour(5)
-			end
+			local PX, PY, PZ = Logic.EntityGetPos(GetID(Position))
+			
+			Camera.SwitchCameraBehaviour(5)
+			Camera.ThroneRoom_SetPosition(PX, PY, PZ);
+			Camera.ThroneRoom_SetLookAt(PX, PY, PZ);
+
 			GUI.ActivateCutSceneState()
 			Input.CutsceneMode()
 			
@@ -19912,6 +19917,46 @@ QSB = QSB or {};
 -- -------------------------------------------------------------------------- --
 -- User-Space                                                                 --
 -- -------------------------------------------------------------------------- --
+
+---
+-- Gibt das Model der Entität zurück.
+--
+--
+-- <b>Alias</b>: GetModel
+--
+-- @param _Entity Entity (Scriptname oder ID)
+-- @return[type=number] Model der Entität
+-- @within Anwenderfunktionen
+--
+function API.GetEntityModel(_Entity)
+    if not IsExisting(_Entity) then
+        error("API.GetEntityModel: _Entity (" ..tostring(_Entity).. ") does not exist!");
+        return 0;
+    end
+    return BundleEntityProperties.Shared:GetValueAsInteger(_Entity, QSB.ScriptingValues[QSB.ScriptingValues.Game].Model);
+end
+GetModel = API.GetEntityModel;
+
+---
+-- Gibt zurück, ob das EntitySelectableFlag gesetzt ist.
+--
+--
+-- <b>Alias</b>: GetSelectableFlag
+--
+-- @param _Entity Entity (Scriptname oder ID)
+-- @return[type=boolean] Selektierbar
+-- @within Anwenderfunktionen
+--
+function API.GetEntitySelectableFlag(_Entity)
+    if not IsExisting(_Entity) then
+        error("API.GetEntitySelectableFlag: _Entity (" ..tostring(_Entity).. ") does not exist!");
+        return 0;
+    end
+	
+	local Value = BundleEntityProperties.Shared:GetValueAsInteger(_Entity, QSB.ScriptingValues[QSB.ScriptingValues.Game].Selectable)
+    return Value == 801280;
+end
+GetSelectableFlag = API.GetEntitySelectableFlag;
 
 ---
 -- Gibt den Größenfaktor des Entity zurück.
@@ -22967,8 +23012,8 @@ end
 b_Goal_ActivateSeveralObjects = {
     Name = "Goal_ActivateSeveralObjects",
     Description = {
-        en = "Goal: Activate an interactive object",
-        de = "Ziel: Aktiviere ein interaktives Objekt",
+        en = "Goal: Activate several interactive objects.",
+        de = "Ziel: Aktiviere mehrere interaktive Objekte.",
     },
     Parameter = {
         { ParameterType.Default, en = "Object name 1", de = "Skriptname 1" },
@@ -31178,8 +31223,8 @@ end
 b_Goal_CollectValuables = {
     Name = "Goal_CollectValuables",
     Description = {
+	    en = "Goal: The player has to find a number of objects that are placed at the indicated positions",
 		de = "Ziel: Der Spieler muss eine Anzahl an Gegenständen finden, die bei den angegebenen Positionen platziert werden",
-        en = "Goal: The player has to find a number of objects that are placed at the indicated positions",
     },
     Parameter = {
         { ParameterType.Default, en = "Search points",          de = "Suchpunkte" },
@@ -44321,7 +44366,7 @@ end
 
 -- -------------------------------------------------------------------------- --
 -- ########################################################################## --
--- #  Symfonia Selfload                                                     # --
+-- #  Selfload                                                     			# --
 -- ########################################################################## --
 -- -------------------------------------------------------------------------- --
 
@@ -44341,7 +44386,7 @@ if not MapEditor and not GUI then
 	if Mission_LoadFiles then
         local Files = Mission_LoadFiles();
         if Files then
-            for i= 1, #Files, 1 do
+            for i = 1, #Files, 1 do
                 Script.Load(Files[i]);
             end
         end
@@ -44362,7 +44407,7 @@ if not MapEditor and not GUI then
 		if Mission_LoadFiles then
             local Files = Mission_LoadFiles();
             if Files then
-                for i= 1, #Files, 1 do
+                for i = 1, #Files, 1 do
                     Script.Load(Files[i]);
                 end
             end
