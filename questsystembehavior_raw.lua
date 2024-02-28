@@ -11,7 +11,7 @@ HistoryEditionFIX_Language = "de" -- Change this to en if you want behavior desc
 
 API = API or {};
 QSB = QSB or {};
-QSB.Version = "Version 2.15.0.1 22/02/2024";
+QSB.Version = "Version 2.15.0.2 28/02/2024";
 QSB.HumanPlayerID = 1;
 QSB.Language = "de";
 
@@ -2511,19 +2511,31 @@ function Core:InterfaceDeactivateBlackBackground()
     XGUIEng.PopPage();
 end
 
-function Core:InterfaceDeactivateBorderScroll(_PositionID)
+function Core:InterfaceDeactivateBorderScroll(_PositionID, _ZoomFactor, _RotationAngle)
     if self.Data.Interface.BorderScrollDeactivated then
         return;
     end
     self.Data.Interface.BorderScrollDeactivated = true;
     GameCallback_Camera_GetBorderscrollFactor_OrigCore = GameCallback_Camera_GetBorderscrollFactor;
 	GameCallback_Camera_GetBorderscrollFactor = function() end;
+	
     if _PositionID then
         Camera.RTS_FollowEntity(_PositionID);
     end
-    Camera.RTS_SetZoomFactor(0.5000);
-    Camera.RTS_SetZoomFactorMax(0.5001);
-    Camera.RTS_SetZoomFactorMin(0.4999);
+	if _ZoomFactor then
+	    Camera.RTS_SetZoomFactor(_ZoomFactor);
+		Camera.RTS_SetZoomFactorMax(_ZoomFactor);
+		Camera.RTS_SetZoomFactorMin(_ZoomFactor);
+	else
+		Camera.RTS_SetZoomFactor(0.5000);
+		Camera.RTS_SetZoomFactorMax(0.5001);
+		Camera.RTS_SetZoomFactorMin(0.4999);
+	end
+	if _RotationAngle then
+		Camera.RTS_SetRotationAngle(_RotationAngle);
+	end
+	
+	Camera.RTS_SetRotationSpeed(0)
 end
 
 function Core:InterfaceActivateBorderScroll()
@@ -2533,10 +2545,13 @@ function Core:InterfaceActivateBorderScroll()
     self.Data.Interface.BorderScrollDeactivated = false;
 	GameCallback_Camera_GetBorderscrollFactor = GameCallback_Camera_GetBorderscrollFactor_OrigCore;
     GameCallback_Camera_GetBorderscrollFactor_OrigCore = nil;
+	
     Camera.RTS_FollowEntity(0);
     Camera.RTS_SetZoomFactor(0.5000);
     Camera.RTS_SetZoomFactorMax(0.5001);
     Camera.RTS_SetZoomFactorMin(0.0999);
+	Camera.RTS_SetRotationSpeed(90) -- Original game value
+	
     if BundleCamera and BundleCamera.Local.Data.ExtendedZoomActive then
         BundleCamera.Local:ActivateExtendedZoom();
     end
@@ -18031,7 +18046,7 @@ function API.SimpleTypewriter(_Data)
         Instance:SetCallback(_Data.Callback);
     end
     if _Data.Position then
-        Instance:SetPosition(_Data.Position);
+        Instance:SetPositionAndCamera(_Data.Position, _Data.ZoomFactor, _Data.RotationAngle)
     end
     if _Data.Speed and _Data.Speed > 0 then
         Instance:SetSpeed(_Data.Speed);
@@ -18113,8 +18128,10 @@ end
 -- @within QSB.SimpleTypewriter
 -- @local
 --
-function QSB.SimpleTypewriter:SetPosition(_Position)
-    self.m_Position = _Position;
+function QSB.SimpleTypewriter:SetPositionAndCamera(_Position, _ZoomFactor, _RotationAngle)
+    self.m_Position = _Position
+	self.m_ZoomFactor = _ZoomFactor
+	self.m_RotationAngle = _RotationAngle
     return self;
 end
 
@@ -18200,17 +18217,10 @@ function QSB.SimpleTypewriter:Play()
             end
 			
 			local Position = %d
-			local ColorR, ColorG, ColorB, ColorA = %d,%d,%d,%d
 			Core:InterfaceDeactivateNormalInterface()
-            Core:InterfaceDeactivateBorderScroll(Position)
-			Core:InterfaceActivateBlackBackground(ColorR, ColorG, ColorB, ColorA)
+			Core:InterfaceActivateBlackBackground(%d,%d,%d,%d)
+			Core:InterfaceDeactivateBorderScroll(Position, %d, %d)
 			
-			local PX, PY, PZ = Logic.EntityGetPos(GetID(Position))
-			
-			Camera.SwitchCameraBehaviour(5)
-			Camera.ThroneRoom_SetPosition(PX, PY, PZ);
-			Camera.ThroneRoom_SetLookAt(PX, PY, PZ);
-
 			GUI.ActivateCutSceneState()
 			Input.CutsceneMode()
 			
@@ -18220,8 +18230,15 @@ function QSB.SimpleTypewriter:Play()
         self.m_Color.R,
         self.m_Color.G,
         self.m_Color.B,
-        self.m_Color.A
+        self.m_Color.A,
+		self.m_ZoomFactor,
+		self.m_RotationAngle
     ));
+	
+	if EMXHookLibrary and EMXHookLibrary.ToggleRTSCameraMouseRotation then
+		EMXHookLibrary.ToggleRTSCameraMouseRotation(false)
+	end
+	
     self.m_JobID = StartSimpleHiResJobEx(self.ControllerJob, self);
     return self;
 end
@@ -18240,9 +18257,6 @@ function QSB.SimpleTypewriter:Stop()
             BundleBriefingSystem.Local.Data.BriefingActive = false
         end
 		
-		if Camera.GetCameraBehaviour() == 5 then
-			Camera.SwitchCameraBehaviour(0)
-		end
 		GUI.ActivateSelectionState()
 		Input.GameMode()
 
@@ -18252,6 +18266,11 @@ function QSB.SimpleTypewriter:Stop()
 
         GUI.ClearNotes()
     ]]);
+	
+	if EMXHookLibrary and EMXHookLibrary.ToggleRTSCameraMouseRotation then
+		EMXHookLibrary.ToggleRTSCameraMouseRotation(true)
+	end
+	
     EndJob(self.m_JobID);
     return self;
 end
