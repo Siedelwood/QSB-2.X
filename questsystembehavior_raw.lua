@@ -11,7 +11,7 @@ HistoryEditionFIX_Language = "de" -- Change this to en if you want behavior desc
 
 API = API or {};
 QSB = QSB or {};
-QSB.Version = "Version 2.15.0.2 28/02/2024";
+QSB.Version = "Version 2.15.0.3 29/02/2024";
 QSB.HumanPlayerID = 1;
 QSB.Language = "de";
 
@@ -2522,7 +2522,7 @@ function Core:InterfaceDeactivateBorderScroll(_PositionID, _ZoomFactor, _Rotatio
     if _PositionID then
         Camera.RTS_FollowEntity(_PositionID);
     end
-	if _ZoomFactor then
+	if _ZoomFactor and _ZoomFactor ~= -1 then
 	    Camera.RTS_SetZoomFactor(_ZoomFactor);
 		Camera.RTS_SetZoomFactorMax(_ZoomFactor);
 		Camera.RTS_SetZoomFactorMin(_ZoomFactor);
@@ -2531,7 +2531,7 @@ function Core:InterfaceDeactivateBorderScroll(_PositionID, _ZoomFactor, _Rotatio
 		Camera.RTS_SetZoomFactorMax(0.5001);
 		Camera.RTS_SetZoomFactorMin(0.4999);
 	end
-	if _RotationAngle then
+	if _RotationAngle and _RotationAngle ~= -1 then
 		Camera.RTS_SetRotationAngle(_RotationAngle);
 	end
 	
@@ -18046,6 +18046,12 @@ function API.SimpleTypewriter(_Data)
         Instance:SetCallback(_Data.Callback);
     end
     if _Data.Position then
+		if not _Data.ZoomFactor then
+			_Data.ZoomFactor = -1
+		end
+		if not _Data.RotationAngle then
+			_Data.RotationAngle = -1
+		end
         Instance:SetPositionAndCamera(_Data.Position, _Data.ZoomFactor, _Data.RotationAngle)
     end
     if _Data.Speed and _Data.Speed > 0 then
