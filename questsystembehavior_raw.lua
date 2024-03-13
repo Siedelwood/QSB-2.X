@@ -11,7 +11,7 @@ HistoryEditionFIX_Language = "de" -- Change this to en if you want behavior desc
 
 API = API or {};
 QSB = QSB or {};
-QSB.Version = "Version 2.15.0.3 29/02/2024";
+QSB.Version = "Version 2.15.0.4 13/03/2024";
 QSB.HumanPlayerID = 1;
 QSB.Language = "de";
 
@@ -9349,6 +9349,136 @@ function b_Reprisal_Diplomacy:Debug(_Quest)
 end
 
 Core:RegisterBehavior(b_Reprisal_Diplomacy);
+
+-- -------------------------------------------------------------------------- --
+
+---
+-- Erstellt einen Handelsposten.
+--
+--
+-- @within Reward
+--
+function Reward_InitTradePost(...)
+    return b_Reward_InitTradePost:new(...)
+end
+
+b_Reward_InitTradePost = {
+	Name = "Reward_InitTradePost",
+    Description = {
+        en = "Reward: Sets up a tradepost.",
+        de = "Lohn: Erstellt einen Handelsposten.",
+    },
+	Parameter = {
+		{ ParameterType.PlayerID, en = "PlayerID", de = "PlayerID"},
+		{ ParameterType.Custom, en = "Active Tradeslot, 0 for None", de = "Aktives Angebot, 0 für Keines"},
+		{ ParameterType.Custom, en = "1: Good to Pay", de = "1: Good to Pay" },
+		{ ParameterType.Number, en = "1: Good Amount", de = "1: Good Amount" },
+		{ ParameterType.Custom, en = "1: Good to Recieve", de = "1: Good to Recieve" },
+		{ ParameterType.Number, en = "1: Good Amount", de = "1: Good Amount" },
+		{ ParameterType.Custom, en = "2: Good to Pay", de = "2: Good to Pay" },
+		{ ParameterType.Number, en = "2: Good Amount", de = "2: Good Amount" },
+		{ ParameterType.Custom, en = "2: Good to Recieve", de = "2: Good to Recieve" },
+		{ ParameterType.Number, en = "2: Good Amount", de = "2: Good Amount" },
+		{ ParameterType.Custom, en = "3: Good to Pay", de = "3: Good to Pay" },
+		{ ParameterType.Number, en = "3: Good Amount", de = "3: Good Amount" },
+		{ ParameterType.Custom, en = "3: Good to Recieve", de = "3: Good to Recieve" },
+		{ ParameterType.Number, en = "3: Good Amount", de = "3: Good Amount" },
+		{ ParameterType.Custom, en = "4: Good to Pay", de = "4: Good to Pay" },
+		{ ParameterType.Number, en = "4: Good Amount", de = "4: Good Amount" },
+		{ ParameterType.Custom, en = "4: Good to Recieve", de = "4: Good to Recieve" },
+		{ ParameterType.Number, en = "4: Good Amount", de = "4: Good Amount" },
+	},
+}
+
+function b_Reward_InitTradePost:GetRewardTable()
+	return {Reward.Custom, {self, self.CustomFunction}};
+end
+
+function b_Reward_InitTradePost:AddParameter(_Index, _Parameter)
+	if (_Index == 0) then
+		self.PlayerID = _Parameter * 1
+	elseif (_Index == 1) then
+		self.ActiveSlot = _Parameter * 1
+	elseif (_Index == 2) then
+		self.PayType1 = _Parameter
+	elseif (_Index == 3) then
+		self.PayAmount1 = _Parameter * 1
+	elseif (_Index == 4) then
+		self.OfferType1 = _Parameter
+	elseif (_Index == 5) then
+		self.OfferAmount1 = _Parameter * 1
+	elseif (_Index == 6) then
+		self.PayType2 = _Parameter
+	elseif (_Index == 7) then
+		self.PayAmount2 = _Parameter * 1
+	elseif (_Index == 8) then
+		self.OfferType2 = _Parameter
+	elseif (_Index == 9) then
+		self.OfferAmount2 = _Parameter * 1
+	elseif (_Index == 10) then
+		self.PayType3 = _Parameter
+	elseif (_Index == 11) then
+		self.PayAmount3 = _Parameter * 1
+	elseif (_Index == 12) then
+		self.OfferType3 = _Parameter
+	elseif (_Index == 13) then
+		self.OfferAmount3 = _Parameter * 1
+	elseif (_Index == 14) then
+		self.PayType4 = _Parameter
+	elseif (_Index == 15) then
+		self.PayAmount4 = _Parameter * 1
+	elseif (_Index == 16) then
+		self.OfferType4 = _Parameter
+	elseif (_Index == 17) then
+		self.OfferAmount4 = _Parameter * 1
+	end
+end
+
+function b_Reward_InitTradePost:GetCustomData(_Index)
+	if (_Index == 1) then
+		return {"0", "1", "2", "3", "4"}
+	elseif _Index >= 2 and _Index <= 16 and _Index % 2 == 0 then
+		local Data = {};
+        for k, v in pairs(Goods) do
+            table.insert(Data, k);
+        end
+        -- Sortieren
+        table.sort(Data);
+        return Data;
+	end
+end
+
+function b_Reward_InitTradePost:CustomFunction(_Quest)
+	local OfferCount = 0
+	for i = 1, 4 do
+		if self["PayAmount"..i] and self["PayAmount"..i] > 0 and self["OfferAmount"..i] and self["OfferAmount"..i] > 0 then
+			OfferCount = i
+		else 
+			break;
+		end
+	end
+	
+	local _, TradepostID = Logic.GetPlayerEntities(self.PlayerID, Entities.I_X_TradePostConstructionSite, 1, 0)
+	assert(TradepostID and TradepostID ~= 0 , _Quest.Identifier .. ": Error in " .. self.Name .. ": CustomFunction: Tradepost is missing")
+	if self.PlayerID and OfferCount > 0 then
+		Logic.TradePost_SetTradePartnerGenerateGoodsFlag(TradepostID, true)
+		Logic.TradePost_SetTradePartnerPlayerID(TradepostID, self.PlayerID)
+		for j = 1, OfferCount do
+			Logic.TradePost_SetTradeDefinition(TradepostID, (j - 1), Goods[self["PayType" ..j]], self["PayAmount" ..j], Goods[self["OfferType" ..j]], self["OfferAmount" ..j])
+		end
+		if self.ActiveSlot and self.ActiveSlot > 0 and self.ActiveSlot <= OfferCount then
+			Logic.TradePost_SetActiveTradeSlot(TradepostID, (self.ActiveSlot - 1))
+		end
+		Logic.InteractiveObjectSetAvailability(TradepostID, false)
+		for i = 1, 8 do
+			Logic.InteractiveObjectSetPlayerState(TradepostID, i, 2)
+		end
+	end
+end
+
+if g_GameExtraNo >= 1 then
+	Core:RegisterBehavior(b_Reward_InitTradePost);
+end
 
 -- -------------------------------------------------------------------------- --
 
@@ -31799,7 +31929,7 @@ b_Reprisal_SetModel = {
     Name = "Reprisal_SetModel",
     Description = {
         en = "Reprisal: Changes the model of the entity. Be careful, some models crash the game.",
-        de = "Vergeltung: Aendert das Model einer Entity. Achtung: Einige Modelle fuehren zum Absturz.",
+        de = "Vergeltung: Ändert das Model einer Entity. Achtung: Einige Modelle führen zum Absturz.",
     },
     Parameter = {
         { ParameterType.ScriptName, en = "Entity",     de = "Entity", },
@@ -31918,8 +32048,8 @@ end
 
 b_Reward_SetPosition = API.InstanceTable(b_Reprisal_SetPosition);
 b_Reward_SetPosition.Name = "Reward_SetPosition";
-b_Reward_SetPosition.Description.en = "Reward: Places an entity relative to the position of another. The entity can look the target.";
-b_Reward_SetPosition.Description.de = "Lohn: Setzt eine Entity relativ zur Position einer anderen. Die Entity kann zum Ziel ausgerichtet werden.";
+b_Reward_SetPosition.Description.en = "Reward: Places an entity relative to the position of another entity. The entity can look the target.";
+b_Reward_SetPosition.Description.de = "Lohn: Setzt eine Entity relativ zur Position einer anderen Entity. Die Entity kann zum Ziel ausgerichtet werden.";
 b_Reward_SetPosition.GetReprisalTable = nil;
 
 b_Reward_SetPosition.GetRewardTable = function(self, _Quest)
@@ -31944,8 +32074,8 @@ end
 
 b_Reward_ChangePlayer = API.InstanceTable(b_Reprisal_ChangePlayer);
 b_Reward_ChangePlayer.Name = "Reward_ChangePlayer";
-b_Reward_ChangePlayer.Description.en = "Reward: Changes the owner of the entity or a battalion.";
-b_Reward_ChangePlayer.Description.de = "Lohn: Aendert den Besitzer einer Entity oder eines Battalions.";
+b_Reward_ChangePlayer.Description.en = "Reward: Changes the owner of an entity or a battalion.";
+b_Reward_ChangePlayer.Description.de = "Lohn: Ändert den Besitzer einer Entity oder eines Battalions.";
 b_Reward_ChangePlayer.GetReprisalTable = nil;
 
 b_Reward_ChangePlayer.GetRewardTable = function(self, _Quest)
@@ -31979,8 +32109,8 @@ end
 b_Reward_MoveToPosition = {
     Name = "Reward_MoveToPosition",
     Description = {
-        en = "Reward: Moves an entity relative to another entity. If angle is zero the entities will be standing directly face to face.",
-        de = "Lohn: Bewegt eine Entity relativ zur Position einer anderen. Wenn Winkel 0 ist, stehen sich die Entities direkt gegen�ber.",
+        en = "Reward: Moves an entity relative to another entity. If the angle is zero the entities will be standing directly face to face.",
+        de = "Lohn: Bewegt eine Entity relativ zur Position einer anderen. Wenn der Winkel 0 ist, stehen sich die Entities direkt gegenüber.",
     },
     Parameter = {
         { ParameterType.ScriptName, en = "Settler", de = "Siedler" },
@@ -32133,8 +32263,8 @@ end
 b_Reward_VictoryWithParty = {
     Name = "Reward_VictoryWithParty",
     Description = {
-        en = "Reward: The player wins the game with an animated festival on the market. Continue playing deleates the festival.",
-        de = "Lohn: Der Spieler gewinnt das Spiel mit einer animierten Siegesfeier. Bei weiterspielen wird das Fest gelöscht.",
+        en = "Reward: The player wins the game with an animated festival on the market. Continue playing deletes the festival.",
+        de = "Lohn: Der Spieler gewinnt das Spiel mit einer animierten Siegesfeier. Bei Weiterspielen wird das Fest gelöscht.",
     },
     Parameter = {}
 };
@@ -32266,7 +32396,7 @@ end
 b_Reward_AI_SetEntityControlled = {
     Name = "Reward_AI_SetEntityControlled",
     Description = {
-        en = "Reward: Bind or Unbind an entity or a battalion to/from an AI player. The AI player must be activated!",
+        en = "Reward: Bind or Unbind an entity or a battalion to/from an AI player. The AI player must have been activated!",
         de = "Lohn: Die KI kontrolliert die Entity oder der KI die Kontrolle entziehen. Die KI muss aktiv sein!",
     },
     Parameter = {
